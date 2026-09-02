@@ -348,9 +348,25 @@ function match(p){
 function render(){
   const list=PAPERS.filter(match).slice();
   if(state.sort==="pub_date"||state.sort==="added_date"){
-    list.sort((a,b)=>(b[state.sort]||"").localeCompare(a[state.sort]||""));
+    // 日期降序为主键；同日内按综合评分降序，再按相关性、DOI 保证稳定有序
+    list.sort((a,b)=>{
+      const da=b[state.sort]||"", dd=a[state.sort]||"";
+      if(da!==dd) return da<dd?-1:1;
+      const s=(b.score_all||0)-(a.score_all||0);
+      if(s!==0) return s;
+      const r=(b.score_rel||0)-(a.score_rel||0);
+      if(r!==0) return r;
+      return (b.doi||"").localeCompare(a.doi||"");
+    });
   }else{
-    list.sort((a,b)=>(b[state.sort]||0)-(a[state.sort]||0));
+    // 评分排序时同分按日期降序，再按 DOI 稳定
+    list.sort((a,b)=>{
+      const s=(b[state.sort]||0)-(a[state.sort]||0);
+      if(s!==0) return s;
+      const da=b.pub_date||"", dd=a.pub_date||"";
+      if(da!==dd) return da<dd?-1:1;
+      return (b.doi||"").localeCompare(a.doi||"");
+    });
   }
   document.getElementById("shownCount").textContent="共 "+list.length+" 篇";
   const totalPages=Math.max(1,Math.ceil(list.length/PAGE_SIZE));
